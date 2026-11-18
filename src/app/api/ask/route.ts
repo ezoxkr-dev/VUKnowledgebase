@@ -143,11 +143,18 @@ function searchLocalPassages(query: string, limit = 5): Source[] {
 export async function POST(req: NextRequest) {
   await connection();
 
-  let body: { question?: unknown; minSimilarity?: unknown };
+  let body: { question?: unknown; minSimilarity?: unknown } = {};
   try {
-    body = await req.json();
+    const raw = await req.text();
+    if (raw && raw.trim().length > 0) {
+      body = JSON.parse(raw);
+    }
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    try {
+      body = (await req.json()) as { question?: unknown; minSimilarity?: unknown };
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
   }
 
   const question = typeof body.question === "string" ? body.question.trim() : "";
