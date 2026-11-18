@@ -15,11 +15,23 @@ type AskResponse = {
   error?: string;
 };
 
-const EXAMPLES = [
-  "What are the admission requirements?",
-  "What is the tuition fee for B.Sc. in CSE?",
-  "How can I pay my tuition fee?",
-  "What scholarships are available?",
+const PROMPT_CATEGORIES = [
+  {
+    category: "🎓 Admissions & Programs",
+    items: [
+      "What are the admission requirements for undergraduate programs?",
+      "What is the tuition fee and waiver for B.Sc. in CSE?",
+      "What scholarships or merit waivers are available?",
+    ],
+  },
+  {
+    category: "🇧🇩 বাংলায় দ্রুত প্রশ্ন (Bangla)",
+    items: [
+      "সিএসই বিভাগে ভর্তির যোগ্যতা ও মোট টিউশন ফি কত?",
+      "ভর্তির সময় কি কি কাগজপত্র জমা দিতে হয়?",
+      "স্থায়ী ক্যাম্পাসের ঠিকানা ও যাতায়াত ব্যবস্থা কি?",
+    ],
+  },
 ];
 
 const MAX_RECORDING_MS = 60_000;
@@ -31,6 +43,7 @@ export function AskBox() {
   const [result, setResult] = useState<AskResponse | null>(null);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -57,10 +70,24 @@ export function AskBox() {
       }
       setResult(data);
     } catch {
-      setError("Network error — please try again.");
+      setError("Network error — please check your connection and try again.");
     } finally {
       setLoading(false);
     }
+  }
+
+  function handleClear() {
+    setQuestion("");
+    setResult(null);
+    setError(null);
+  }
+
+  function handleCopy() {
+    if (!result?.answer) return;
+    navigator.clipboard.writeText(result.answer).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    });
   }
 
   function cleanupRecording() {
@@ -86,6 +113,7 @@ export function AskBox() {
         return;
       }
       setQuestion(data.text.trim());
+      handleSubmit(data.text.trim());
     } catch {
       setError("Network error during transcription — please type instead.");
     } finally {
@@ -93,8 +121,6 @@ export function AskBox() {
     }
   }
 
-  // Click to start recording, click again to stop and transcribe. The
-  // transcript lands in the input box; the search only runs on "Ask".
   async function toggleRecording() {
     if (recording) {
       mediaRecorderRef.current?.stop();
@@ -133,8 +159,6 @@ export function AskBox() {
     recorder.start();
     setRecording(true);
 
-    // Safety stop after 60 s so a forgotten second click cannot balloon
-    // past the 20 MB inline audio limit.
     stopTimerRef.current = setTimeout(() => {
       if (mediaRecorderRef.current?.state === "recording") {
         mediaRecorderRef.current.stop();
@@ -157,11 +181,11 @@ export function AskBox() {
           type="text"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="e.g. What are the tuition fees for CSE?"
+          placeholder="Ask a question (e.g. What are the tuition fees for CSE? or বাংলায় লিখুন)..."
           maxLength={1000}
           disabled={loading}
           required
-          className="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-3 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-neutral-100"
+          className="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-3.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-purple-400"
         />
         <button
           type="button"
@@ -169,8 +193,8 @@ export function AskBox() {
           disabled={loading || transcribing}
           title={
             recording
-              ? "Stop recording and transcribe"
-              : "Ask your question with the microphone"
+              ? "Stop recording and search"
+              : "Ask with microphone (English or Bangla)"
           }
           aria-label={micLabel}
           className={`flex w-12 items-center justify-center rounded-xl border transition disabled:cursor-not-allowed disabled:opacity-50 ${
@@ -202,7 +226,7 @@ export function AskBox() {
         <button
           type="submit"
           disabled={loading || !question.trim()}
-          className="rounded-xl bg-neutral-900 px-5 py-3 text-sm font-medium text-neutral-100 transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-neutral-100 dark:text-neutral-900 dark:hover:bg-neutral-300"
+          className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-5 py-3.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
         >
           {loading ? "Searching…" : "Ask"}
         </button>
@@ -212,39 +236,52 @@ export function AskBox() {
         <p
           className={`mt-2 text-xs ${
             recording
-              ? "animate-pulse text-red-600 dark:text-red-400"
-              : "text-neutral-500 dark:text-neutral-400"
+              ? "animate-pulse text-red-600 dark:text-red-400 font-medium"
+              : "text-purple-600 dark:text-purple-400 font-medium"
           }`}
         >
           {recording
-            ? "Recording… click the mic icon again to stop (max 60 s), then your speech becomes text."
-            : "Transcribing your recording…"}
+            ? "🎙️ Listening… click mic again to transcribe with Groq Whisper."
+            : "⚡ Transcribing speech to text..."}
         </p>
       )}
 
-      {!result && !loading && !error && (
-        <div className="mt-4 flex flex-wrap gap-2">
-          {EXAMPLES.map((example) => (
-            <button
-              key={example}
-              type="button"
-              onClick={() => {
-                setQuestion(example);
-                handleSubmit(example);
-              }}
-              className="rounded-full border border-neutral-200 px-3 py-1.5 text-xs text-neutral-600 transition hover:border-neutral-400 hover:text-neutral-900 dark:border-neutral-800 dark:text-neutral-400 dark:hover:border-neutral-600 dark:hover:text-neutral-200"
-            >
-              {example}
-            </button>
+      {/* Suggested Questions Grid */}
+      {!result && !loading && (
+        <div className="mt-6 space-y-4">
+          {PROMPT_CATEGORIES.map((cat, idx) => (
+            <div key={idx} className="space-y-2">
+              <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
+                {cat.category}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {cat.items.map((example) => (
+                  <button
+                    key={example}
+                    type="button"
+                    onClick={() => {
+                      setQuestion(example);
+                      handleSubmit(example);
+                    }}
+                    className="rounded-full border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 px-3.5 py-1.5 text-xs text-neutral-700 dark:text-neutral-300 transition hover:border-purple-400 hover:text-purple-600 dark:hover:border-purple-500 dark:hover:text-purple-300"
+                  >
+                    {example}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       )}
 
       {loading && (
-        <div className="mt-6 rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-          <p className="animate-pulse text-sm text-neutral-500 dark:text-neutral-400">
-            Converting your question to embeddings, searching the knowledgebase…
-          </p>
+        <div className="mt-6 rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900 shadow-sm">
+          <div className="flex items-center gap-3">
+            <span className="w-3 h-3 rounded-full bg-purple-600 animate-ping"></span>
+            <p className="text-sm font-medium text-neutral-600 dark:text-neutral-300">
+              Generating 3072-d embeddings &amp; querying pgvector similarity...
+            </p>
+          </div>
         </div>
       )}
 
@@ -256,32 +293,56 @@ export function AskBox() {
 
       {result?.answer && (
         <div className="mt-6 space-y-4">
-          <div className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-              Answer
-            </h2>
+          <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900 shadow-sm">
+            <div className="flex items-center justify-between mb-3 pb-2 border-b border-neutral-100 dark:border-neutral-800">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
+                  Citation-Grounded Answer
+                </span>
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
+                  Grounded
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleCopy}
+                  className="text-xs font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition"
+                >
+                  {copied ? "✓ Copied!" : "Copy"}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="text-xs font-medium text-neutral-400 hover:text-red-500 transition"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
             <p className="whitespace-pre-wrap text-sm leading-relaxed text-neutral-800 dark:text-neutral-200">
               {result.answer}
             </p>
           </div>
 
           {!result.noMatch && (result.sources?.length ?? 0) > 0 && (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400 dark:text-neutral-500">
-                Sources ({result.sources!.length} best matches)
+            <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900 shadow-sm">
+              <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-neutral-500">
+                Supporting Sources ({result.sources!.length} retrieved passages)
               </h2>
               <ol className="space-y-3">
                 {result.sources!.map((source, i) => (
-                  <li key={i} className="space-y-1">
-                    <div className="flex items-center justify-between gap-3 text-xs">
-                      <span className="font-medium text-neutral-700 dark:text-neutral-300">
-                        {source.filename}
+                  <li key={i} className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200/60 dark:border-neutral-800">
+                    <div className="flex items-center justify-between gap-3 text-xs mb-1">
+                      <span className="font-semibold text-neutral-800 dark:text-neutral-200">
+                        [{i + 1}] {source.filename}
                       </span>
-                      <span className="rounded-full bg-neutral-100 px-2 py-0.5 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
-                        {(source.similarity * 100).toFixed(1)}% match
+                      <span className="rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 font-mono text-[11px] font-semibold">
+                        {(source.similarity * 100).toFixed(1)}% similarity
                       </span>
                     </div>
-                    <p className="text-xs leading-relaxed text-neutral-500 dark:text-neutral-400">
+                    <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">
                       {source.snippet}
                     </p>
                   </li>

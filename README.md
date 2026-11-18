@@ -1,67 +1,106 @@
 # VU Knowledgebase
 
-Admin panel for ingesting documents into a pgvector-backed knowledge base.
-Uploads (PDF / DOCX / TXT) are split into chunks and converted to vectors with
-**gemini-embedding-001** by a background job — conversion continues even if the
-browser is closed, and unfinished work is automatically resumed and reported
-the next time the admin logs in.
+> Autonomous Document Ingestion, 3072-Dimensional pgvector Semantic Search & Grounded RAG Platform.
+> Developed for **Varendra University (Rajshahi, Bangladesh) — 33rd Batch Industrial Attachment**.
 
-## Stack
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Vercel-black?style=for-the-badge&logo=vercel)](https://vu-knowledgebase.vercel.app)
+[![Developer Portfolio](https://img.shields.io/badge/Author-Mustarif_Alom-purple?style=for-the-badge)](https://ezoxkr-dev.github.io/own-portfolio/)
 
-- **Next.js 16** (App Router, Node runtime on Fluid Compute)
-- **Postgres + pgvector** — stores projects, documents, chunks, job status and the embeddings themselves
-- **Google Generative Language API** — `gemini-embedding-001` via REST (no lock-in)
-- Session auth — JWT cookie signed with `AUTH_SECRET`; admin credentials come from env
+---
 
-## Environment variables
+## 🚀 Live Demo & Repository
+- **Live Deployment:** [https://vu-knowledgebase.vercel.app](https://vu-knowledgebase.vercel.app)
+- **Developer Portfolio:** [https://ezoxkr-dev.github.io/own-portfolio/](https://ezoxkr-dev.github.io/own-portfolio/)
+- **Author:** Mustarif Alom (`mustarifalom10@gmail.com`) — Computer Science & Engineering, Varendra University
 
-Copy `.env.example` to `.env` (local) or set them in Vercel (Project → Settings → Environment Variables, or `vercel env add`):
+---
+
+## 🌟 Architecture & Features
+
+1. **Document Ingestion & Text Extraction**:
+   - Parses multi-format documents (PDF via `unpdf`, DOCX via `mammoth`, and plain TXT).
+   - Validates file sizes with a 4MB ceiling for non-blocking serverless execution.
+
+2. **Boundary-Aware Sliding Window Chunking**:
+   - Chunks text into ~`1,200` characters with `150` characters overlap.
+   - Preserves semantic integrity by breaking at natural sentence and paragraph boundaries (`\n\n`, `. `, `! `, `? `).
+
+3. **High-Dimensional Vector Embeddings**:
+   - Generates 3072-dimensional vector representations with Google Gemini (`gemini-embedding-001`).
+   - Uses `RETRIEVAL_DOCUMENT` for ingested documents and `RETRIEVAL_QUERY` for queries.
+   - Built with direct REST calls (no heavy SDK overhead) with jittered exponential retry backoff.
+
+4. **Vector Database & Similarity Search**:
+   - Built on **PostgreSQL** with the **`pgvector`** extension.
+   - Cosine distance similarity operator (`ORDER BY embedding <=> $vec LIMIT 8`).
+   - Filter thresholding ($\ge 0.55$) to eliminate irrelevant context passages.
+
+5. **Citation-Grounded RAG Engine**:
+   - Synthesizes answers strictly from retrieved context passages using Google `gemini-3.8-flash`.
+   - Strict hallucination guardrails: claims cite source passage numbers (`[1]`, `[2]`).
+   - Zero-thinking latency budget (`thinkingBudget: 0`) for sub-2-second response times.
+   - Bilingual support: mirrors the question language in English or বাংলা (Bangla).
+
+6. **Multimodal Speech-to-Text Search**:
+   - Microphone voice querying recorded via the browser's `MediaRecorder` API.
+   - Transcribed in sub-seconds via the **Groq Whisper API** (`whisper-large-v3`) at zero temperature.
+
+7. **Queue Resilience & Asynchronous Processing**:
+   - Non-blocking uploads: returns HTTP 200 immediately and completes embeddings in the background via Vercel Fluid Compute `waitUntil`.
+   - Persistent queue state machine (`pending` $\rightarrow$ `processing` $\rightarrow$ `completed` / `failed`) in PostgreSQL.
+   - Resumes interrupted jobs on admin dashboard login (`/api/jobs/resume`) and runs hourly Vercel Cron retry sweeps (`/api/cron/process`).
+
+---
+
+## 🛠️ Stack
+
+- **Framework:** Next.js 16 (App Router, Node runtime on Fluid Compute)
+- **Database:** PostgreSQL + `pgvector` (Neon / Supabase) with fallback local SQLite driver
+- **AI Models:** Google `gemini-embedding-001` (3072-d vectors) & `gemini-3.8-flash` (RAG)
+- **Speech AI:** Groq Whisper API (`whisper-large-v3`)
+- **Styling:** Tailwind CSS
+
+---
+
+## ⚙️ Environment Variables
+
+Copy `.env.example` to `.env`:
 
 | Variable | Required | Description |
-| --- | --- | --- |
-| `DATABASE_URL` | yes in production | Postgres connection string. The database needs the **pgvector** extension (Neon and Supabase have it built in). Not needed when using SQLite locally. |
-| `DB_DRIVER` | no | Set to `sqlite` to use a local SQLite file instead of Postgres (local testing only). Alternatively set `SQLITE_FILE`. |
-| `GOOGLE_API_KEY` | yes | API key for gemini-embedding-001 (https://aistudio.google.com/apikey). |
-| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | yes | The single admin login. |
-| `AUTH_SECRET` | yes | Random string used to sign the session JWT. |
-| `EMBEDDING_MODEL` | no | Defaults to `gemini-embedding-001`. |
-| `EMBEDDING_DIMS` | no | Embedding dimension; default `3072` (model supports 768–3072). |
-| `CRON_SECRET` | no | If set, Vercel Cron gets authorized automatically on `/api/cron/process`. |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | Yes (Production) | Postgres connection string with `pgvector` extension enabled. |
+| `GOOGLE_API_KEY` | Yes | Google AI Studio API key for `gemini-embedding-001` and `gemini-3.8-flash`. |
+| `GROQ_API_KEY` | Optional | Groq API key for Whisper voice search. |
+| `ADMIN_USERNAME` / `ADMIN_PASSWORD` | Yes | Credentials for admin dashboard. |
+| `AUTH_SECRET` | Yes | Secret used for signing session JWTs. |
+| `EMBEDDING_DIMS` | No | Defaults to `3072` (supports 768–3072). |
 
-## Setup
+---
+
+## 💻 Local Setup
 
 ```bash
+# Clone the repository
+git clone https://github.com/ezoxkr-dev/VUKnowledgebase.git
+cd VUKnowledgebase
+
+# Install dependencies
 npm install
-npm run db:init     # postgres only: creates the schema — run once per database
+
+# Initialize database schema (PostgreSQL)
+npm run db:init
+
+# Start development server
 npm run dev
 ```
 
-**Local testing without a Postgres server:** set `DB_DRIVER=sqlite` in `.env`
-(optionally with `SQLITE_FILE=local.db`, the default file is `local.db`).
-The schema is created automatically on first use; embeddings are stored as
-JSON (this app never queries vectors by similarity yet — similarity search
-runs on the Postgres/pgvector deployment).
+---
 
-Open http://localhost:3000 → log in with your admin credentials → create a project → upload files.
+## 👨‍💻 Author
 
-## Deploying to Vercel
-
-1. Push this repo to GitHub, then create the project in Vercel (or run `vercel` from this directory).
-2. Add the env variables above to Production (and Preview if you want).
-3. Run `DATABASE_URL=... npm run db:init` from your machine against the **production** database (it only creates tables — it is safe to re-run).
-4. Deploy.
-
-## How background conversion works
-
-1. On upload, text is extracted synchronously (unpdf for PDF, mammoth for DOCX) and split into ~1,200-char overlapping chunks which are stored as `pending` rows in Postgres.
-2. The HTTP response is returned immediately; embedding continues in the same function instance after the response via Fluid Compute `waitUntil`.
-3. All queue state lives in the database, never in memory. Three things resume interrupted work:
-   - Every dashboard/project load calls `/api/jobs/resume`, which reclaims documents left `pending`/stale from a previous session and reports final status to the admin.
-   - A Vercel Cron job (`/api/cron/process`, hourly, configured in `vercel.json`) retries anything left over.
-   - If the API rate-limits (429), the job backs off and retries; each chunk keeps an attempt counter (5 max) so permanently broken files fail loudly while transient failures stay retryable.
-
-Notes:
-
-- Vercel caps the request body at 4.5 MB, so the upload endpoint enforces a 4 MB per-file limit. For larger PDFs, add [Vercel Blob client uploads](https://vercel.com/docs/storage/vercel-blob) and point the processor at the blob URL.
-- Scanned/image-only PDFs contain no extractable text and will fail with a clear error.
-- `pgvector`'s HNSW/IVFFlat indexes are not created automatically — add one (`CREATE INDEX ... USING hnsw (embedding vector_cosine_ops)`) once you exceed ~100k vectors, or query via `ORDER BY embedding <=> $vec LIMIT k`.
+**Mustarif Alom**
+- Degree: B.Sc. in Computer Science & Engineering (Final Year, 33rd Batch)
+- Institution: Varendra University, Rajshahi, Bangladesh
+- Email: [mustarifalom10@gmail.com](mailto:mustarifalom10@gmail.com)
+- Portfolio: [ezoxkr-dev.github.io/own-portfolio](https://ezoxkr-dev.github.io/own-portfolio/)
+- GitHub: [@ezoxkr-dev](https://github.com/ezoxkr-dev)
