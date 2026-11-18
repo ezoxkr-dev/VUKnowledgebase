@@ -30,26 +30,81 @@ const VU_DOMAIN_KEYWORDS = [
   "ওয়েভার", "স্কলারশিপ", "বৃত্তি", "জিপিএ", "সেমিস্টার", "ক্রেডিট", "গ্রন্থাগার", "ল্যাব", "রাজশাহী"
 ];
 
-// Check if query is pertinent to Varendra University
-function isVarendraUniversityQuery(query: string): boolean {
-  const qLower = query.toLowerCase();
-  
-  // Explicit mention of Varendra / VU
-  if (qLower.includes("varendra") || qLower.includes("বরেন্দ্র") || /\bvu\b/i.test(qLower)) {
-    return true;
+function checkUniversityDomain(query: string): {
+  isValid: boolean;
+  isGreeting: boolean;
+  refusalMessage?: string;
+} {
+  const qLower = query.toLowerCase().trim();
+  const isBangla = /[\u0980-\u09FF]/.test(query);
+
+  // 1. Greetings & Identity queries
+  const greetings = ["hi", "hello", "hey", "who are you", "what can you do", "help", "কে তুমি", "কে আপনি", "হাই", "হ্যালো", "সালাম", "নমস্কার"];
+  const isDirectGreeting = greetings.some((g) => qLower === g || qLower.startsWith(g + " ") || qLower.endsWith(" " + g));
+  if (isDirectGreeting && !qLower.includes("fee") && !qLower.includes("admission") && !qLower.includes("cost")) {
+    return {
+      isValid: true,
+      isGreeting: true,
+      refusalMessage: isBangla
+        ? "আসসালামু আলাইকুম / নমস্কার! আমি বরেন্দ্র বিশ্ববিদ্যালয়ের অফিসিয়াল এআই সহকারী। আমি আপনাকে ভর্তি প্রক্রিয়া, ২০টি অ্যাকাডেমিক বিভাগের টিউশন ফি, মেধা বৃত্তি/ওয়েভার নীতিমালা, স্থায়ী ক্যাম্পাস এবং বাস যাতায়াত সম্পর্কে তথ্য দিতে প্রস্তুত। আপনি কি জানতে চান?"
+        : "Hello! I am the official Varendra University Knowledge AI. I can assist you with academic admissions, 20+ degree fee structures, merit waivers (up to 100%), campus facilities, and bus transportation schedules. How can I assist your university inquiry today?",
+    };
   }
 
-  // Count domain keywords
+  // 2. Reject questions explicitly asking about other institutions
+  const otherInstitutions = [
+    "dhaka university", "du", "rajshahi university", "ruet", "buet", "cuet", "kuet",
+    "nsu", "brac", "aiub", "aust", "diu", "harvard", "oxford", "mit", "stanford",
+    "ঢাকা বিশ্ববিদ্যালয়", "বুয়েট", "রুয়েট"
+  ];
+  const mentionsOther = otherInstitutions.some((inst) => qLower.includes(inst));
+  const mentionsVU = qLower.includes("varendra") || qLower.includes("বরেন্দ্র") || /\bvu\b/i.test(qLower);
+  if (mentionsOther && !mentionsVU) {
+    return {
+      isValid: false,
+      isGreeting: false,
+      refusalMessage: isBangla
+        ? "আমি শুধুমাত্র বরেন্দ্র বিশ্ববিদ্যালয় (রাজশাহী)-এর তথ্য প্রদান করতে পারি। অন্য কোনো প্রতিষ্ঠান বা বিশ্ববিদ্যালয়ের তথ্য আমার সিস্টেমে নেই।"
+        : "I only provide verified information regarding Varendra University (Rajshahi). I do not have records or information for other institutions. Please ask inquiries regarding Varendra University.",
+    };
+  }
+
+  // 3. Positive VU Domain signals
+  if (mentionsVU) return { isValid: true, isGreeting: false };
+
+  // Explicit VU Program / Campus / Fee tokens
+  const explicitVuSignals = [
+    "cse", "eee", "b.pharm", "pharmacy", "ll.b", "llb", "bba", "jcms", "nfe",
+    "tuition", "tuition fee", "admission fee", "admission test", "merit waiver",
+    "permanent campus", "kharbona", "bypass road", "student bus", "bus route",
+    "hafizur rahaman khan", "vc", "vice chancellor", "ugc approved", "grading scale",
+    "সিএসই", "ফার্মেসি", "আইন বিভাগ", "টিউশন ফি", "ভর্তি ফি", "স্থায়ী ক্যাম্পাস", "ওয়েভার", "বাস রুট"
+  ];
+  if (explicitVuSignals.some((sig) => qLower.includes(sig))) {
+    return { isValid: true, isGreeting: false };
+  }
+
+  // Token overlap check
   const words = qLower.replace(/[?.,!;:()"]/g, " ").split(/\s+/).filter(Boolean);
-  let matches = 0;
-  for (const w of words) {
-    if (VU_DOMAIN_KEYWORDS.some((kw) => w === kw || (kw.length > 3 && w.includes(kw)))) {
-      matches++;
-    }
+  const matchedTokens = words.filter((w) => VU_DOMAIN_KEYWORDS.includes(w));
+  if (
+    matchedTokens.length >= 2 ||
+    (matchedTokens.length === 1 &&
+      ["fee", "fees", "cost", "admission", "waiver", "scholarship", "campus", "hostel", "ভর্তি", "খরচ"].includes(
+        matchedTokens[0],
+      ))
+  ) {
+    return { isValid: true, isGreeting: false };
   }
 
-  // If at least one distinct university keyword is present, consider valid
-  return matches >= 1;
+  // Otherwise: Strictly Out of Domain
+  return {
+    isValid: false,
+    isGreeting: false,
+    refusalMessage: isBangla
+      ? `আমি বরেন্দ্র বিশ্ববিদ্যালয়ের অফিসিয়াল এআই সহকারী। আমি শুধুমাত্র বরেন্দ্র বিশ্ববিদ্যালয় সম্পর্কিত তথ্য (যেমনঃ বিভিন্ন বিভাগের ভর্তি যোগ্যতা, মোট টিউশন ফি, ওয়েভার ও স্কলারশিপ নীতিমালা, স্থায়ী ক্যাম্পাস, যাতায়াত ব্যবস্থা ও সুযোগ-সুবিধা) প্রদানের জন্য তৈরি।\n\nআপনার প্রশ্নটি বরেন্দ্র বিশ্ববিদ্যালয় সম্পর্কিত না হওয়ায় উত্তর প্রদান করা সম্ভব নয়। অনুগ্রহ করে বরেন্দ্র বিশ্ববিদ্যালয় সম্পর্কিত যেকোনো প্রশ্ন জিজ্ঞাসা করুন।`
+      : `I am the official Varendra University Knowledge AI Assistant. I am specialized strictly to provide information regarding Varendra University (including undergraduate & graduate admissions, tuition fee structures, merit waivers, departmental programs, permanent campus location, and bus transit facilities).\n\nYour question does not appear to be related to Varendra University. Please ask an inquiry pertaining to Varendra University (e.g. "What is the tuition fee for B.Sc. in CSE?", "What are the scholarship criteria for GPA 5.00?", or "Where is the permanent campus located?").`,
+  };
 }
 
 // In-memory knowledge passages for local search
@@ -63,13 +118,13 @@ function loadPassages(): { title: string; content: string; category: string }[] 
     const text = fs.readFileSync(filePath, "utf-8");
     const sections = text.split(/\n-{3,}\n/);
     const parsed: { title: string; content: string; category: string }[] = [];
-    
+
     for (const sec of sections) {
       const trimmed = sec.trim();
       if (!trimmed || trimmed.length < 35) continue;
       const lines = trimmed.split("\n");
       const title = lines[0]?.replace(/[=#-]/g, "").trim() || "Varendra University Guide";
-      
+
       let category = "General";
       const tLower = title.toLowerCase();
       if (tLower.includes("fee") || tLower.includes("tuition")) category = "Tuition & Fees";
@@ -93,7 +148,7 @@ function searchLocalPassages(query: string, limit = 5): Source[] {
   if (passages.length === 0) return [];
 
   const rawTokens = query.toLowerCase().replace(/[?.,!;:()"]/g, " ").split(/\s+/).filter(Boolean);
-  
+
   const synonyms: Record<string, string[]> = {
     fee: ["tuition", "cost", "taka", "bdt", "waiver", "scholarship", "ফি", "খরচ", "টাকা"],
     tuition: ["fee", "cost", "waiver", "scholarship", "ফি", "খরচ"],
@@ -173,15 +228,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // 1. Strict Out-of-Domain Guardrail Check
-  const isBangla = /[\u0980-\u09FF]/.test(question);
-  if (!isVarendraUniversityQuery(question)) {
-    const refusalText = isBangla
-      ? `আমি বরেন্দ্র বিশ্ববিদ্যালয়ের অফিসিয়াল এআই সহকারী। আমি শুধুমাত্র বরেন্দ্র বিশ্ববিদ্যালয় সম্পর্কিত তথ্য (যেমনঃ বিভিন্ন বিভাগের ভর্তি যোগ্যতা, মোট টিউশন ফি, ওয়েভার ও স্কলারশিপ নীতিমালা, স্থায়ী ক্যাম্পাস, যাতায়াত ব্যবস্থা ও সুযোগ-সুবিধা) প্রদানের জন্য তৈরি।\n\nআপনার প্রশ্নটি বরেন্দ্র বিশ্ববিদ্যালয় সম্পর্কিত না হওয়ায় উত্তর প্রদান করা সম্ভব নয়। অনুগ্রহ করে বরেন্দ্র বিশ্ববিদ্যালয় সম্পর্কিত যেকোনো প্রশ্ন জিজ্ঞাসা করুন (যেমনঃ সিএসই বিভাগের খরচ কত?, ওয়েভার পাওয়ার যোগ্যতা কি?, স্থায়ী ক্যাম্পাসের ঠিকানা কি?)।`
-      : `I am the official Varendra University Knowledge AI Assistant. I am specialized strictly to provide information regarding Varendra University (including undergraduate & graduate admissions, tuition fee structures, merit waivers, departmental programs, permanent campus location, and bus transit facilities).\n\nYour question does not appear to be related to Varendra University. Please ask an inquiry pertaining to Varendra University (e.g. "What is the tuition fee for B.Sc. in CSE?", "What are the scholarship criteria for GPA 5.00?", or "Where is the permanent campus located?").`;
+  // 1. Domain Guardrail & Greeting Classification
+  const domainCheck = checkUniversityDomain(question);
 
+  if (domainCheck.isGreeting) {
     return NextResponse.json({
-      answer: refusalText,
+      answer: domainCheck.refusalMessage,
+      sources: [],
+      isGreeting: true,
+      mode: "university-assistant",
+    });
+  }
+
+  if (!domainCheck.isValid) {
+    return NextResponse.json({
+      answer: domainCheck.refusalMessage,
       sources: [],
       isOutOfDomain: true,
       mode: "domain-guardrail",
@@ -249,6 +310,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  const isBangla = /[\u0980-\u09FF]/.test(question);
   return NextResponse.json({
     answer: isBangla
       ? `বরেন্দ্র বিশ্ববিদ্যালয়ের নলেজবেসে এই প্রশ্নের সরাসরি কোনো রেকর্ড খুঁজে পাওয়া যায়নি। অনুগ্রহ করে প্রশ্নটি অন্যভাবে লিখুন অথবা ভর্তির অফিসিয়াল পোর্টালে (admission.vu.edu.bd) যোগাযোগ করুন।`
