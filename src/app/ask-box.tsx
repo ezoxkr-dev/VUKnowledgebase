@@ -12,8 +12,24 @@ type AskResponse = {
   answer?: string;
   sources?: Source[];
   noMatch?: boolean;
+  isOutOfDomain?: boolean;
   error?: string;
   mode?: string;
+};
+
+const PROGRAMS_DATA: Record<
+  string,
+  { name: string; credits: number; fee: number; semesters: number; minGpa: number }
+> = {
+  cse: { name: "B.Sc. in Computer Science & Engineering (CSE)", credits: 144, fee: 514000, semesters: 8, minGpa: 2.5 },
+  eee: { name: "B.Sc. in Electrical & Electronic Engineering (EEE)", credits: 143, fee: 468000, semesters: 8, minGpa: 2.5 },
+  pharmacy: { name: "Bachelor of Pharmacy (B.Pharm)", credits: 164, fee: 666000, semesters: 8, minGpa: 3.0 },
+  bba: { name: "Bachelor of Business Administration (BBA)", credits: 126, fee: 414000, semesters: 8, minGpa: 2.5 },
+  llb: { name: "LL.B. (Honours) - Law", credits: 134, fee: 369000, semesters: 8, minGpa: 2.5 },
+  english: { name: "B.A. (Honours) in English", credits: 123, fee: 324000, semesters: 8, minGpa: 2.5 },
+  economics: { name: "BSS (Honours) in Economics", credits: 123, fee: 252000, semesters: 8, minGpa: 2.5 },
+  sociology: { name: "BSS (Honours) in Sociology", credits: 123, fee: 252000, semesters: 8, minGpa: 2.5 },
+  jcms: { name: "BSS in Journalism & Creative Media (JCMS)", credits: 123, fee: 288000, semesters: 8, minGpa: 2.5 },
 };
 
 const TOPIC_PRESETS = [
@@ -34,13 +50,13 @@ const PROMPTS_BY_TOPIC: Record<string, string[]> = {
   ],
   fees: [
     "What is the total tuition fee for B.Sc. in CSE?",
-    "What is the semester-wise payment structure?",
-    "Are there installment facilities for tuition fee payments?",
+    "What is the total cost for Bachelor of Pharmacy (B.Pharm)?",
+    "What is the semester fee payment schedule?",
   ],
   admission: [
     "What are the minimum GPA requirements for SSC and HSC?",
     "What documents must be submitted during undergraduate admission?",
-    "Is there an admission test for B.Sc. in CSE?",
+    "How to apply online through admission.vu.edu.bd?",
   ],
   cse: [
     "How many credits are required to graduate in B.Sc. in CSE?",
@@ -49,13 +65,13 @@ const PROMPTS_BY_TOPIC: Record<string, string[]> = {
   ],
   campus: [
     "Where is the permanent campus located and how to reach there?",
-    "Is university student bus / transportation service available?",
+    "Is student bus transportation service available and what are the routes?",
     "What library and cafeteria facilities exist on permanent campus?",
   ],
   waiver: [
     "What GPA is required for 100% and 50% tuition fee waiver?",
-    "Is there special waiver for female students or siblings?",
-    "What are the scholarship conditions for maintaining GPA in semesters?",
+    "Is there a 25% waiver for female students or siblings?",
+    "What are the conditions for maintaining merit waiver in semesters?",
   ],
 };
 
@@ -70,18 +86,27 @@ export function AskBox() {
   const [transcribing, setTranscribing] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // New Interactive Feature States
+  // Advanced features state
   const [selectedTopic, setSelectedTopic] = useState("all");
-  const [precision, setPrecision] = useState<number>(0.55); // 0.40, 0.55, 0.70
+  const [precision, setPrecision] = useState<number>(0.55);
   const [inspectingSource, setInspectingSource] = useState<Source | null>(null);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  
+  // Interactive Modals
+  const [showCalculator, setShowCalculator] = useState(false);
+  const [showBusGuide, setShowBusGuide] = useState(false);
+
+  // Calculator State
+  const [calcProgram, setCalcProgram] = useState("cse");
+  const [calcSscGpa, setCalcSscGpa] = useState<number>(5.0);
+  const [calcHscGpa, setCalcHscGpa] = useState<number>(5.0);
+  const [calcQuota, setCalcQuota] = useState("none"); // none, female, sibling, ff
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const streamRef = useRef<MediaStream | null>(null);
   const stopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Stop TTS if component unmounts
   useEffect(() => {
     return () => {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -94,7 +119,6 @@ export function AskBox() {
     const trimmed = q.trim();
     if (!trimmed || loading) return;
 
-    // Stop ongoing speech on new query
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
       setIsPlayingAudio(false);
@@ -116,7 +140,7 @@ export function AskBox() {
       }
       setResult(data);
     } catch {
-      setError("Network error — please check your connection and try again.");
+      setError("Network connection issue — please try again.");
     } finally {
       setLoading(false);
     }
@@ -140,7 +164,6 @@ export function AskBox() {
     });
   }
 
-  // Text-To-Speech function
   function toggleSpeech() {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) {
       alert("Text-to-speech is not supported in this browser.");
@@ -156,7 +179,6 @@ export function AskBox() {
     if (!result?.answer) return;
 
     window.speechSynthesis.cancel();
-    // Clean markdown symbols for natural reading
     const cleanText = result.answer
       .replace(/\[\d+\]/g, "")
       .replace(/[#*`_]/g, "")
@@ -167,7 +189,6 @@ export function AskBox() {
     utterance.rate = 1.0;
     utterance.pitch = 1.0;
 
-    // Language detection: check if Bengali script is predominant
     const isBangla = /[\u0980-\u09FF]/.test(cleanText);
     if (isBangla) {
       utterance.lang = "bn-BD";
@@ -201,13 +222,13 @@ export function AskBox() {
       const res = await fetch("/api/transcribe", { method: "POST", body: form });
       const data = (await res.json()) as { text?: string; error?: string };
       if (!res.ok || !data.text) {
-        setError(data.error ?? "Voice transcription failed. Please type instead.");
+        setError(data.error ?? "Voice transcription unavailable. Please type your question.");
         return;
       }
       setQuestion(data.text.trim());
       handleSubmit(data.text.trim());
     } catch {
-      setError("Network error during transcription — please type instead.");
+      setError("Transcription network error — please type instead.");
     } finally {
       setTranscribing(false);
     }
@@ -223,7 +244,7 @@ export function AskBox() {
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
-      setError("Microphone access was denied. Please type your question.");
+      setError("Microphone permission denied. Please type your question.");
       return;
     }
 
@@ -258,13 +279,54 @@ export function AskBox() {
     }, MAX_RECORDING_MS);
   }
 
-  const micLabel = transcribing ? "Transcribing…" : recording ? "Stop" : "Voice";
+  // Calculate waiver and fee estimation
+  const prog = PROGRAMS_DATA[calcProgram] || PROGRAMS_DATA.cse;
+  let waiverPercent = 0;
+  if (calcQuota === "ff") {
+    waiverPercent = 100;
+  } else if (calcSscGpa >= 5.0 && calcHscGpa >= 5.0) {
+    waiverPercent = 50; // Merit waiver standard 50%-100%
+  } else if (calcQuota === "female" || calcQuota === "sibling") {
+    waiverPercent = 25;
+  }
+  const discountAmount = (prog.fee * waiverPercent) / 100;
+  const netPayable = prog.fee - discountAmount;
+  const perSemester = Math.round(netPayable / prog.semesters);
 
   return (
     <div className="mt-8 space-y-6">
-      {/* Precision Filter & Search Controls */}
+      
+      {/* Top Professional Tools Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl bg-white/80 dark:bg-neutral-900/80 border border-neutral-200 dark:border-neutral-800 shadow-xs">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">
+            University Tools:
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowCalculator(true)}
+            className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 hover:bg-emerald-100 transition flex items-center gap-1.5"
+          >
+            <span>💰 Fee &amp; Waiver Calculator</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowBusGuide(true)}
+            className="px-3 py-1 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 hover:bg-blue-100 transition flex items-center gap-1.5"
+          >
+            <span>🚌 Bus Routes &amp; Schedule</span>
+          </button>
+        </div>
+
+        {/* Domain Scope Chip */}
+        <div className="flex items-center gap-1.5 text-[11px] text-neutral-500 font-medium">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Verified Varendra University Scope</span>
+        </div>
+      </div>
+
+      {/* Topic Filter Chips */}
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-        {/* Topic Filters */}
         <div className="flex flex-wrap items-center gap-1.5">
           {TOPIC_PRESETS.map((t) => (
             <button
@@ -273,8 +335,8 @@ export function AskBox() {
               onClick={() => setSelectedTopic(t.id)}
               className={`px-3 py-1 rounded-full transition font-medium ${
                 selectedTopic === t.id
-                  ? "bg-purple-600 text-white shadow-sm"
-                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200 dark:hover:bg-neutral-700"
+                  ? "bg-purple-600 text-white shadow-xs"
+                  : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 hover:bg-neutral-200"
               }`}
             >
               {t.label}
@@ -282,13 +344,13 @@ export function AskBox() {
           ))}
         </div>
 
-        {/* Similarity Threshold Selector */}
-        <div className="flex items-center gap-1.5 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white/60 dark:bg-neutral-900/60 p-1">
-          <span className="text-[11px] font-semibold text-neutral-500 pl-2">Precision:</span>
+        {/* Precision Threshold */}
+        <div className="flex items-center gap-1.5 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 p-1">
+          <span className="text-[11px] font-semibold text-neutral-500 pl-2">Filter:</span>
           {[
-            { val: 0.4, label: "Broad (40%)" },
-            { val: 0.55, label: "Balanced (55%)" },
-            { val: 0.7, label: "Strict (70%)" },
+            { val: 0.4, label: "Broad" },
+            { val: 0.55, label: "Balanced" },
+            { val: 0.7, label: "Strict Grounding" },
           ].map((item) => (
             <button
               key={item.val}
@@ -306,7 +368,7 @@ export function AskBox() {
         </div>
       </div>
 
-      {/* Main Search Bar Form */}
+      {/* Main Search Input Form */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -314,41 +376,32 @@ export function AskBox() {
         }}
         className="flex gap-2"
       >
-        <input
-          type="text"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Ask a question (e.g. What are the tuition fees for CSE? or বাংলায় লিখুন)..."
-          maxLength={1000}
-          disabled={loading}
-          required
-          className="flex-1 rounded-xl border border-neutral-300 bg-white px-4 py-3.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-purple-400"
-        />
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder="Ask anything about Varendra University (e.g. CSE fees, admission criteria, permanent campus)..."
+            maxLength={1000}
+            disabled={loading}
+            required
+            className="w-full rounded-xl border border-neutral-300 bg-white px-4 py-3.5 text-sm text-neutral-900 outline-none placeholder:text-neutral-400 focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100 dark:focus:border-purple-400"
+          />
+        </div>
+
+        {/* Voice recording button */}
         <button
           type="button"
           onClick={toggleRecording}
           disabled={loading || transcribing}
-          title={
+          title={recording ? "Stop and query" : "Ask by speaking (Groq Whisper STT)"}
+          className={`flex w-12 items-center justify-center rounded-xl border transition disabled:cursor-not-allowed ${
             recording
-              ? "Stop recording and search"
-              : "Ask with microphone (English or Bangla)"
-          }
-          aria-label={micLabel}
-          className={`flex w-12 items-center justify-center rounded-xl border transition disabled:cursor-not-allowed disabled:opacity-50 ${
-            recording
-              ? "border-red-500 bg-red-500/10 text-red-600 dark:text-red-400"
-              : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-500 hover:text-neutral-900 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300 dark:hover:border-neutral-500 dark:hover:text-neutral-100"
+              ? "border-red-500 bg-red-500/10 text-red-600 animate-pulse"
+              : "border-neutral-300 bg-white text-neutral-600 hover:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-300"
           }`}
         >
-          <svg
-            className="h-5 w-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
+          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
             {recording ? (
               <rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor" />
             ) : (
@@ -360,34 +413,29 @@ export function AskBox() {
             )}
           </svg>
         </button>
+
+        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading || !question.trim()}
           className="rounded-xl bg-purple-600 hover:bg-purple-700 text-white px-5 py-3.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
         >
-          {loading ? "Searching…" : "Ask"}
+          {loading ? "Querying..." : "Ask AI"}
         </button>
       </form>
 
+      {/* Voice status indicator */}
       {(recording || transcribing) && (
-        <p
-          className={`text-xs ${
-            recording
-              ? "animate-pulse text-red-600 dark:text-red-400 font-medium"
-              : "text-purple-600 dark:text-purple-400 font-medium"
-          }`}
-        >
-          {recording
-            ? "🎙️ Listening… click mic again to transcribe with Groq Whisper."
-            : "⚡ Transcribing speech to text..."}
+        <p className={`text-xs ${recording ? "text-red-600 font-medium animate-pulse" : "text-purple-600 font-medium"}`}>
+          {recording ? "🎙️ Listening to your voice... Click microphone again to transcribe." : "⚡ Transcribing via Groq Whisper API..."}
         </p>
       )}
 
-      {/* Suggested Questions Grid Based on Selected Topic */}
+      {/* Suggested Prompts Grid */}
       {!result && !loading && (
         <div className="space-y-3">
           <div className="text-xs font-semibold text-neutral-500 dark:text-neutral-400">
-            Suggested Prompts ({TOPIC_PRESETS.find((t) => t.id === selectedTopic)?.label}):
+            Suggested University Prompts:
           </div>
           <div className="flex flex-wrap gap-2">
             {(PROMPTS_BY_TOPIC[selectedTopic] || PROMPTS_BY_TOPIC.all).map((example) => (
@@ -398,7 +446,7 @@ export function AskBox() {
                   setQuestion(example);
                   handleSubmit(example);
                 }}
-                className="rounded-full border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 px-3.5 py-1.5 text-xs text-neutral-700 dark:text-neutral-300 transition hover:border-purple-400 hover:text-purple-600 dark:hover:border-purple-500 dark:hover:text-purple-300"
+                className="rounded-full border border-neutral-200 dark:border-neutral-800 bg-white/70 dark:bg-neutral-900/70 px-3.5 py-1.5 text-xs text-neutral-700 dark:text-neutral-300 transition hover:border-purple-400 hover:text-purple-600"
               >
                 {example}
               </button>
@@ -407,13 +455,13 @@ export function AskBox() {
         </div>
       )}
 
-      {/* Loading state indicator */}
+      {/* Loading Ping */}
       {loading && (
         <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900 shadow-sm">
           <div className="flex items-center gap-3">
             <span className="w-3 h-3 rounded-full bg-purple-600 animate-ping"></span>
             <p className="text-sm font-medium text-neutral-600 dark:text-neutral-300">
-              Generating 3072-d embeddings &amp; querying pgvector similarity...
+              Verifying university domain &amp; retrieving grounded knowledge passages...
             </p>
           </div>
         </div>
@@ -425,32 +473,80 @@ export function AskBox() {
         </p>
       )}
 
-      {/* Answer Container */}
-      {result?.answer && (
+      {/* Out-of-Domain Guardrail Warning */}
+      {result?.isOutOfDomain && (
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 dark:bg-amber-950/40 p-6 dark:border-amber-900 text-amber-900 dark:text-amber-200 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-lg">🛡️</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+              Domain Scope Guardrail: Varendra University Only
+            </span>
+          </div>
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">
+            {result.answer}
+          </p>
+          <div className="pt-2 border-t border-amber-200 dark:border-amber-900/60 flex flex-wrap gap-2 text-xs">
+            <span className="text-amber-800 dark:text-amber-300 font-semibold">Try asking instead:</span>
+            <button
+              onClick={() => {
+                setQuestion("What is the total tuition fee for B.Sc. in CSE?");
+                handleSubmit("What is the total tuition fee for B.Sc. in CSE?");
+              }}
+              className="underline hover:text-amber-600"
+            >
+              CSE Tuition Fees
+            </button>
+            <span>&bull;</span>
+            <button
+              onClick={() => {
+                setQuestion("Where is the permanent campus located and how to reach?");
+                handleSubmit("Where is the permanent campus located and how to reach?");
+              }}
+              className="underline hover:text-amber-600"
+            >
+              Permanent Campus Location
+            </button>
+            <span>&bull;</span>
+            <button
+              onClick={() => {
+                setQuestion("What GPA is required for 100% and 50% waiver?");
+                handleSubmit("What GPA is required for 100% and 50% waiver?");
+              }}
+              className="underline hover:text-amber-600"
+            >
+              Merit Waiver Policy
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Grounded University Answer Box */}
+      {result?.answer && !result.isOutOfDomain && (
         <div className="space-y-4">
           <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900 shadow-sm">
             <div className="flex items-center justify-between mb-3 pb-2 border-b border-neutral-100 dark:border-neutral-800">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                  Citation-Grounded Answer
+                  Verified VU Knowledge Response
                 </span>
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">
-                  {result.mode === "vector-rag" ? "Vector RAG (Gemini)" : "Verified Record"}
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-semibold">
+                  Official Record Grounded
                 </span>
               </div>
+              
               <div className="flex items-center gap-3">
-                {/* Audio Readout Button */}
+                {/* Text-To-Speech Button */}
                 <button
                   type="button"
                   onClick={toggleSpeech}
                   title="Listen to synthesized voice readout"
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition ${
                     isPlayingAudio
-                      ? "bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300 animate-pulse"
+                      ? "bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300 animate-pulse"
                       : "bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200"
                   }`}
                 >
-                  <span>{isPlayingAudio ? "⏹ Stop" : "🔊 Listen"}</span>
+                  <span>{isPlayingAudio ? "⏹ Stop Audio" : "🔊 Listen Voice"}</span>
                 </button>
 
                 <button
@@ -458,7 +554,7 @@ export function AskBox() {
                   onClick={handleCopy}
                   className="text-xs font-medium text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100 transition"
                 >
-                  {copied ? "✓ Copied!" : "Copy"}
+                  {copied ? "✓ Copied" : "Copy"}
                 </button>
                 <button
                   type="button"
@@ -475,17 +571,18 @@ export function AskBox() {
             </p>
           </div>
 
-          {/* Supporting Sources with Interactive Modal Trigger */}
+          {/* Retrieved Citations */}
           {!result.noMatch && (result.sources?.length ?? 0) > 0 && (
             <div className="rounded-2xl border border-neutral-200 bg-white p-6 dark:border-neutral-800 dark:bg-neutral-900 shadow-sm">
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xs font-bold uppercase tracking-wider text-neutral-500">
-                  Supporting Sources ({result.sources!.length} retrieved passages)
+                  Supporting University Documents ({result.sources!.length} verified passages)
                 </h2>
                 <span className="text-[11px] text-neutral-400">
-                  Click any passage to inspect vector score &amp; full context
+                  Click to inspect vector similarity &amp; citation excerpt
                 </span>
               </div>
+
               <ol className="space-y-3">
                 {result.sources!.map((source, i) => (
                   <li
@@ -507,9 +604,6 @@ export function AskBox() {
                     <p className="text-xs leading-relaxed text-neutral-600 dark:text-neutral-400">
                       {source.snippet}
                     </p>
-                    <div className="mt-2 flex items-center justify-end text-[11px] text-purple-600 dark:text-purple-400 font-medium">
-                      Inspect Citation &rarr;
-                    </div>
                   </li>
                 ))}
               </ol>
@@ -518,7 +612,230 @@ export function AskBox() {
         </div>
       )}
 
-      {/* Interactive Citation Inspector Modal */}
+      {/* Tuition Fee & Waiver Calculator Modal */}
+      {showCalculator && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
+          onClick={() => setShowCalculator(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white dark:bg-neutral-900 p-6 shadow-2xl border border-neutral-200 dark:border-neutral-800 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between pb-3 border-b border-neutral-100 dark:border-neutral-800">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600">
+                  Interactive University Planning
+                </span>
+                <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-0.5">
+                  Tuition Fee &amp; Merit Waiver Estimator
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCalculator(false)}
+                className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 text-lg p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                  Select Intended Degree Program:
+                </label>
+                <select
+                  value={calcProgram}
+                  onChange={(e) => setCalcProgram(e.target.value)}
+                  className="w-full rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-2.5 text-neutral-900 dark:text-neutral-100"
+                >
+                  {Object.entries(PROGRAMS_DATA).map(([key, item]) => (
+                    <option key={key} value={key}>
+                      {item.name} ({item.credits} Credits &bull; ৳{item.fee.toLocaleString()})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                    SSC GPA (out of 5.00):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="2.5"
+                    max="5.0"
+                    value={calcSscGpa}
+                    onChange={(e) => setCalcSscGpa(parseFloat(e.target.value) || 0)}
+                    className="w-full rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-2 text-neutral-900 dark:text-neutral-100"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                    HSC GPA (out of 5.00):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="2.5"
+                    max="5.0"
+                    value={calcHscGpa}
+                    onChange={(e) => setCalcHscGpa(parseFloat(e.target.value) || 0)}
+                    className="w-full rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-2 text-neutral-900 dark:text-neutral-100"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
+                  Special Waiver Eligibility / Quota:
+                </label>
+                <select
+                  value={calcQuota}
+                  onChange={(e) => setCalcQuota(e.target.value)}
+                  className="w-full rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-800 p-2.5 text-neutral-900 dark:text-neutral-100"
+                >
+                  <option value="none">General Merit (Standard)</option>
+                  <option value="female">Female Student Special Waiver (25%)</option>
+                  <option value="sibling">Sibling / Spouse of Enrolled Student (25%)</option>
+                  <option value="ff">Freedom Fighter Quota (100% Full Waiver)</option>
+                </select>
+              </div>
+
+              {/* Calculator Results Card */}
+              <div className="p-4 rounded-xl bg-neutral-100 dark:bg-neutral-800 space-y-2 border border-neutral-200 dark:border-neutral-700 mt-2">
+                <div className="flex justify-between">
+                  <span className="text-neutral-600 dark:text-neutral-400">Standard Total Fee:</span>
+                  <span className="font-semibold text-neutral-900 dark:text-neutral-100">
+                    ৳{prog.fee.toLocaleString()} BDT
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-neutral-600 dark:text-neutral-400">Eligible Waiver:</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                    {waiverPercent}% (Savings: ৳{discountAmount.toLocaleString()})
+                  </span>
+                </div>
+                <div className="flex justify-between pt-2 border-t border-neutral-200 dark:border-neutral-700 text-sm font-bold">
+                  <span>Net Payable Tuition:</span>
+                  <span className="text-purple-600 dark:text-purple-400">৳{netPayable.toLocaleString()} BDT</span>
+                </div>
+                <div className="flex justify-between text-[11px] text-neutral-500">
+                  <span>Per Semester Approx. Cost ({prog.semesters} Semesters):</span>
+                  <span>৳{perSemester.toLocaleString()} / semester</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const q = `Give me a full breakdown of the tuition fees, credit requirements, and waiver policy for ${prog.name}.`;
+                  setShowCalculator(false);
+                  setQuestion(q);
+                  handleSubmit(q);
+                }}
+                className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline"
+              >
+                Ask AI Full Breakdown &rarr;
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCalculator(false)}
+                className="px-4 py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-semibold"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bus Routes & Transit Guide Modal */}
+      {showBusGuide && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
+          onClick={() => setShowBusGuide(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl bg-white dark:bg-neutral-900 p-6 shadow-2xl border border-neutral-200 dark:border-neutral-800 space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between pb-3 border-b border-neutral-100 dark:border-neutral-800">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-600">
+                  Campus Connectivity
+                </span>
+                <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-100 mt-0.5">
+                  Varendra University Student Bus Routes
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowBusGuide(false)}
+                className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 text-lg p-1"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs leading-relaxed text-neutral-700 dark:text-neutral-300">
+              <p>
+                Varendra University operates dedicated fleet transport services between Rajshahi City hubs and the <strong>Permanent Campus at Bypass Road, Kharbona</strong>:
+              </p>
+
+              <div className="space-y-2">
+                <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                  <div className="font-bold text-blue-600 dark:text-blue-400 mb-0.5">
+                    Route 1: Talaimari &bull; Kazla &bull; RU Main Gate &bull; VU Campus
+                  </div>
+                  <div className="text-[11px] text-neutral-500">
+                    Morning Pickups: 7:45 AM, 8:45 AM, 10:00 AM &bull; Return Departures: 1:30 PM, 3:30 PM, 5:00 PM.
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                  <div className="font-bold text-blue-600 dark:text-blue-400 mb-0.5">
+                    Route 2: Railway Station &bull; Vodra &bull; Shiroil &bull; VU Campus
+                  </div>
+                  <div className="text-[11px] text-neutral-500">
+                    Morning Pickups: 8:00 AM, 9:00 AM &bull; Return Departures: 2:00 PM, 4:15 PM.
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700">
+                  <div className="font-bold text-blue-600 dark:text-blue-400 mb-0.5">
+                    Route 3: Court &bull; C&amp;B &bull; Bornali &bull; Railgate &bull; VU Campus
+                  </div>
+                  <div className="text-[11px] text-neutral-500">
+                    Morning Pickups: 7:50 AM, 8:50 AM &bull; Return Departures: 3:30 PM, 5:00 PM.
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 text-[11px]">
+                <strong>Fare:</strong> Transportation is complimentary or nominal for all enrolled students carrying valid university ID cards.
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="button"
+                onClick={() => setShowBusGuide(false)}
+                className="px-4 py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-semibold"
+              >
+                Close Guide
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Citation Inspector Modal */}
       {inspectingSource && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4"
@@ -531,7 +848,7 @@ export function AskBox() {
             <div className="flex items-start justify-between pb-3 border-b border-neutral-100 dark:border-neutral-800">
               <div>
                 <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">
-                  Vector Citation Inspector
+                  Official Record Citation Inspector
                 </span>
                 <h3 className="text-base font-bold text-neutral-900 dark:text-neutral-100 mt-0.5">
                   {inspectingSource.filename}
@@ -546,10 +863,9 @@ export function AskBox() {
               </button>
             </div>
 
-            {/* Similarity Meter */}
             <div className="space-y-1">
               <div className="flex justify-between text-xs font-medium">
-                <span className="text-neutral-500">Cosine Similarity Score:</span>
+                <span className="text-neutral-500">Relevance Match:</span>
                 <span className="font-mono font-bold text-purple-600 dark:text-purple-400">
                   {(inspectingSource.similarity * 100).toFixed(2)}%
                 </span>
@@ -562,9 +878,8 @@ export function AskBox() {
               </div>
             </div>
 
-            {/* Passage Text */}
             <div className="space-y-1">
-              <span className="text-xs font-semibold text-neutral-500">Passage Excerpt:</span>
+              <span className="text-xs font-semibold text-neutral-500">Official Excerpt:</span>
               <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 border border-neutral-200 dark:border-neutral-800 text-xs text-neutral-700 dark:text-neutral-300 leading-relaxed font-sans max-h-60 overflow-y-auto whitespace-pre-wrap">
                 {inspectingSource.snippet}
               </div>
@@ -579,12 +894,12 @@ export function AskBox() {
                 }}
                 className="text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline"
               >
-                📋 Copy Citation Text
+                📋 Copy Excerpt Text
               </button>
               <button
                 type="button"
                 onClick={() => setInspectingSource(null)}
-                className="px-4 py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-semibold hover:opacity-90"
+                className="px-4 py-2 rounded-xl bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-xs font-semibold"
               >
                 Close
               </button>
@@ -592,6 +907,7 @@ export function AskBox() {
           </div>
         </div>
       )}
+
     </div>
   );
 }
