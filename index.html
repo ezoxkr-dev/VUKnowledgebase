@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Varendra University Knowledge Engine | Official Query AI &amp; Portal</title>
+    <meta name="description" content="Official AI Knowledge Engine for Varendra University (Rajshahi). Inquires regarding admissions, 20+ program tuition fees, merit waivers, bus transport, and permanent campus.">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        vuGreen: '#055438',
+                        vuGreenDark: '#033a27',
+                        vuGreenLight: '#e6f4ea',
+                        vuGold: '#d97706',
+                        vuGoldLight: '#fef3c7',
+                    },
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+            background-color: #f8fafc;
+            color: #0f172a;
+        }
+        .modal-active { overflow: hidden; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-50 text-slate-900">
+
+    <!-- Top Banner -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
+        <div class="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-700 to-teal-600 text-white flex items-center justify-center font-extrabold text-lg shadow-sm">
+                    VU
+                </div>
+                <div>
+                    <h1 class="text-sm sm:text-base font-bold text-slate-900 leading-tight">Varendra University</h1>
+                    <p class="text-[11px] text-slate-500">Knowledge Engine &bull; UGC Approved (Rajshahi)</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 sm:gap-4 text-xs font-semibold">
+                <a href="https://admission.vu.edu.bd" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 transition hidden sm:inline-flex items-center gap-1.5">
+                    <i class="fas fa-graduation-cap"></i> Admission Portal
+                </a>
+                <a href="https://ezoxkr-dev.github.io/own-portfolio/" target="_blank" rel="noopener noreferrer" class="text-purple-600 hover:underline">
+                    Author Portfolio &rarr;
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-grow max-w-4xl w-full mx-auto px-4 py-8 sm:py-12">
+        
+        <!-- Hero Section -->
+        <div class="text-center mb-10">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100/70 text-emerald-800 text-xs font-semibold border border-emerald-300 mb-4">
+                <span class="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                <span>Autonomous Domain-Grounded Assistant &bull; 33rd Batch Attachment</span>
+            </div>
+            
+            <h2 class="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
+                Varendra University Query AI
+            </h2>
+            
+            <p class="mt-3 text-sm sm:text-base text-slate-600 max-w-2xl mx-auto leading-relaxed">
+                Ask any question regarding admissions, 20+ degree tuition fee structures, 100% merit waivers, student bus schedules, or campus facilities in English or বাংলা.
+            </p>
+
+            <div class="mt-4 flex flex-wrap items-center justify-center gap-2 text-xs">
+                <span class="px-2.5 py-1 rounded-full bg-slate-200/80 font-medium text-slate-700">🛡️ Strict VU Guardrail</span>
+                <span class="px-2.5 py-1 rounded-full bg-slate-200/80 font-medium text-slate-700">Zero Hallucination Citations</span>
+                <span class="px-2.5 py-1 rounded-full bg-slate-200/80 font-medium text-slate-700">Groq Whisper Voice</span>
+                <span class="px-2.5 py-1 rounded-full bg-slate-200/80 font-medium text-slate-700">Bilingual (English / বাংলা)</span>
+            </div>
+        </div>
+
+        <!-- Quick Access Utility Bar -->
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-3 p-3.5 bg-white rounded-2xl border border-slate-200 shadow-sm">
+            <div class="flex flex-wrap items-center gap-2 text-xs">
+                <span class="font-bold text-slate-500 uppercase tracking-wider pl-1">Tools:</span>
+                <button onclick="openCalcModal()" class="px-3.5 py-1.5 rounded-xl bg-emerald-50 text-emerald-700 font-semibold border border-emerald-300 hover:bg-emerald-100 transition flex items-center gap-1.5 shadow-xs">
+                    <i class="fas fa-calculator text-emerald-600"></i> Fee &amp; Waiver Calculator
+                </button>
+                <button onclick="openBusModal()" class="px-3.5 py-1.5 rounded-xl bg-blue-50 text-blue-700 font-semibold border border-blue-300 hover:bg-blue-100 transition flex items-center gap-1.5 shadow-xs">
+                    <i class="fas fa-bus text-blue-600"></i> Student Bus Routes
+                </button>
+            </div>
+            <div class="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+                <i class="fas fa-shield-alt text-emerald-500"></i> Official VU Data (Rajshahi)
+            </div>
+        </div>
+
+        <!-- Search Box Form -->
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 sm:p-6 mb-6">
+            
+            <!-- Category Chips -->
+            <div class="flex flex-wrap gap-1.5 mb-4 text-xs">
+                <button onclick="filterCategory('all')" id="btn-all" class="cat-btn px-3 py-1 rounded-full bg-emerald-600 text-white font-semibold transition">All Knowledge</button>
+                <button onclick="filterCategory('fees')" id="btn-fees" class="cat-btn px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition">💰 Tuition &amp; Fees</button>
+                <button onclick="filterCategory('admission')" id="btn-admission" class="cat-btn px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition">🎓 Admission &amp; GPA</button>
+                <button onclick="filterCategory('cse')" id="btn-cse" class="cat-btn px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition">💻 CSE Department</button>
+                <button onclick="filterCategory('campus')" id="btn-campus" class="cat-btn px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition">🏛️ Campus &amp; Transport</button>
+                <button onclick="filterCategory('waiver')" id="btn-waiver" class="cat-btn px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition">📜 Waivers &amp; Quotas</button>
+            </div>
+
+            <!-- Input Form -->
+            <form id="queryForm" onsubmit="handleQuerySubmit(event)" class="flex gap-2">
+                <input 
+                    type="text" 
+                    id="queryInput" 
+                    placeholder="Ask anything about Varendra University (e.g. CSE fees, admission criteria, or বাংলায় লিখুন)..."
+                    class="flex-1 px-4 py-3.5 rounded-xl border border-slate-300 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-600 transition"
+                    required
+                >
+                <button 
+                    type="button" 
+                    id="micBtn" 
+                    onclick="toggleVoiceInput()"
+                    title="Speak your question (Voice Input)" 
+                    class="w-12 flex items-center justify-center rounded-xl border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 transition"
+                >
+                    <i id="micIcon" class="fas fa-microphone"></i>
+                </button>
+                <button 
+                    type="submit" 
+                    id="submitBtn" 
+                    class="px-6 py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm shadow-sm transition flex items-center gap-2"
+                >
+                    <span>Ask AI</span>
+                    <i class="fas fa-paper-plane text-xs"></i>
+                </button>
+            </form>
+
+            <div id="voiceStatus" class="hidden text-xs text-red-600 font-semibold mt-2 animate-pulse flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                <span>Listening to your voice... Speak your question now.</span>
+            </div>
+
+            <!-- Sample Prompts -->
+            <div id="samplePrompts" class="mt-4 pt-4 border-t border-slate-100 space-y-2">
+                <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Popular Quick Queries:</div>
+                <div id="promptsContainer" class="flex flex-wrap gap-2 text-xs">
+                    <!-- Dynamic Prompts Inserted here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Out-of-Domain Guardrail Box -->
+        <div id="outOfDomainBox" class="hidden mb-6 p-6 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 space-y-3 shadow-xs">
+            <div class="flex items-center gap-2 text-amber-800 font-bold text-sm">
+                <i class="fas fa-shield-alt text-base text-amber-600"></i>
+                <span>Domain Scope Guardrail: Varendra University Only</span>
+            </div>
+            <p id="outOfDomainText" class="text-sm leading-relaxed text-amber-800">
+                I am the official Varendra University Knowledge AI. I can only provide information regarding Varendra University (including admissions, tuition fees, academic programs, waivers, and campus facilities).
+            </p>
+            <div class="pt-2 border-t border-amber-200/80 text-xs text-amber-800 flex flex-wrap gap-2">
+                <span class="font-semibold">Suggested questions to ask:</span>
+                <button onclick="setAndQuery('What is the total tuition fee for B.Sc. in CSE?')" class="underline hover:text-amber-950">CSE Tuition Fees</button> &bull;
+                <button onclick="setAndQuery('Where is the permanent campus located and how to reach?')" class="underline hover:text-amber-950">Campus Location</button> &bull;
+                <button onclick="setAndQuery('What GPA is required for 100% and 50% waiver?')" class="underline hover:text-amber-950">Waiver Policy</button>
+            </div>
+        </div>
+
+        <!-- Answer Container -->
+        <div id="answerContainer" class="hidden mb-6 space-y-4">
+            
+            <!-- Answer Card -->
+            <div class="p-6 sm:p-7 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-4">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-800">Verified Knowledge Response</span>
+                        <span class="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200">Official Record</span>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleAudioSpeech()" id="audioBtn" class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
+                            <i id="audioIcon" class="fas fa-volume-up"></i>
+                            <span id="audioText">Listen Audio</span>
+                        </button>
+                        <button onclick="copyAnswerText()" class="px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
+                            <i class="far fa-copy"></i>
+                            <span id="copyText">Copy</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div id="answerContent" class="text-sm leading-relaxed text-slate-800 whitespace-pre-wrap font-sans">
+                    <!-- Answer Text -->
+                </div>
+            </div>
+
+            <!-- Citations Card -->
+            <div id="citationsCard" class="p-6 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">
+                        Supporting University Documents (<span id="sourceCount">0</span> retrieved passages)
+                    </h3>
+                    <span class="text-[11px] text-slate-400">Click passage to inspect context</span>
+                </div>
+                <ol id="sourcesList" class="space-y-3 text-xs">
+                    <!-- Injected via JS -->
+                </ol>
+            </div>
+        </div>
+
+        <!-- 3 Highlights Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs mt-8">
+            <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-1.5">
+                <div class="font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fas fa-university text-emerald-600"></i> Permanent Campus
+                </div>
+                <p class="text-slate-500 leading-relaxed">
+                    Bypass Road, Kharbona, Rajshahi-6204. 84 digital classrooms, 25 specialized laboratories, central library.
+                </p>
+            </div>
+
+            <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-1.5">
+                <div class="font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fas fa-award text-amber-500"></i> Generous Waivers
+                </div>
+                <p class="text-slate-500 leading-relaxed">
+                    Up to 100% waiver for GPA 5.00 applicants. 25% waiver for all female applicants, siblings, and quotas.
+                </p>
+            </div>
+
+            <div class="p-5 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-1.5">
+                <div class="font-bold text-slate-900 flex items-center gap-2">
+                    <i class="fas fa-phone-alt text-blue-600"></i> Admission Helpline
+                </div>
+                <p class="text-slate-500 leading-relaxed">
+                    01730-406501, 01730-406502 &bull; admission@vu.edu.bd &bull; admission.vu.edu.bd
+                </p>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Fee & Waiver Calculator Modal -->
+    <div id="calcModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4" onclick="closeCalcModal()">
+        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4" onclick="event.stopPropagation()">
+            <div class="flex items-start justify-between pb-3 border-b border-slate-100">
+                <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-600">University Cost Planning</span>
+                    <h3 class="text-lg font-bold text-slate-900 mt-0.5">Tuition Fee &amp; Waiver Calculator</h3>
+                </div>
+                <button onclick="closeCalcModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Select Academic Degree Program:</label>
+                    <select id="calcProgramSelect" onchange="updateCalculation()" class="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 text-xs">
+                        <option value="cse">B.Sc. in Computer Science &amp; Engineering (144 Cr &bull; ৳5,14,000)</option>
+                        <option value="eee">B.Sc. in Electrical &amp; Electronic Engineering (143 Cr &bull; ৳4,68,000)</option>
+                        <option value="pharmacy">Bachelor of Pharmacy (164 Cr &bull; ৳6,66,000)</option>
+                        <option value="bba">Bachelor of Business Administration (126 Cr &bull; ৳4,14,000)</option>
+                        <option value="llb">LL.B. (Honours) - Law (134 Cr &bull; ৳3,69,000)</option>
+                        <option value="english">B.A. in English (123 Cr &bull; ৳3,24,000)</option>
+                        <option value="economics">BSS in Economics (123 Cr &bull; ৳2,52,000)</option>
+                        <option value="sociology">BSS in Sociology (123 Cr &bull; ৳2,52,000)</option>
+                        <option value="jcms">BSS in Journalism &amp; Media (123 Cr &bull; ৳2,88,000)</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">SSC GPA (out of 5.00):</label>
+                        <input type="number" id="calcSsc" step="0.01" min="2.5" max="5.0" value="5.00" onchange="updateCalculation()" class="w-full p-2 rounded-xl border border-slate-300 bg-slate-50 text-slate-900">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">HSC GPA (out of 5.00):</label>
+                        <input type="number" id="calcHsc" step="0.01" min="2.5" max="5.0" value="5.00" onchange="updateCalculation()" class="w-full p-2 rounded-xl border border-slate-300 bg-slate-50 text-slate-900">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Special Quota / Category:</label>
+                    <select id="calcQuotaSelect" onchange="updateCalculation()" class="w-full p-2.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 text-xs">
+                        <option value="none">General Merit (Standard)</option>
+                        <option value="female">Female Applicant Special Waiver (25%)</option>
+                        <option value="sibling">Sibling / Spouse Enrolled at VU (25%)</option>
+                        <option value="ff">Freedom Fighter Quota (100% Full Waiver)</option>
+                    </select>
+                </div>
+
+                <!-- Live Results Display -->
+                <div class="p-4 rounded-xl bg-slate-100 border border-slate-200 space-y-2 mt-2">
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Standard Total Fee:</span>
+                        <span id="calcStandardFee" class="font-bold text-slate-900">৳5,14,000 BDT</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-500">Eligible Waiver:</span>
+                        <span id="calcWaiverPercent" class="font-bold text-emerald-600">50% (৳2,57,000 Saved)</span>
+                    </div>
+                    <div class="flex justify-between pt-2 border-t border-slate-200 text-sm font-extrabold">
+                        <span>Net Payable Tuition:</span>
+                        <span id="calcNetFee" class="text-emerald-700">৳2,57,000 BDT</span>
+                    </div>
+                    <div class="flex justify-between text-[11px] text-slate-500">
+                        <span>Approx. Per Semester (8 Semesters):</span>
+                        <span id="calcPerSemester">৳32,125 / semester</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-2">
+                <button onclick="askAiCalcDetails()" class="text-xs font-bold text-emerald-600 hover:underline">
+                    Ask AI Full Breakdown &rarr;
+                </button>
+                <button onclick="closeCalcModal()" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold">
+                    Close Calculator
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bus Routes Modal -->
+    <div id="busModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4" onclick="closeBusModal()">
+        <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4" onclick="event.stopPropagation()">
+            <div class="flex items-start justify-between pb-3 border-b border-slate-100">
+                <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-blue-600">Transit &amp; Shuttle Guide</span>
+                    <h3 class="text-lg font-bold text-slate-900 mt-0.5">Varendra University Bus Routes</h3>
+                </div>
+                <button onclick="closeBusModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+            </div>
+
+            <div class="space-y-3 text-xs leading-relaxed text-slate-700">
+                <p>Dedicated university bus service connects key city locations with the <strong>Permanent Campus (Bypass Road, Kharbona)</strong>:</p>
+
+                <div class="space-y-2">
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div class="font-bold text-blue-700 mb-0.5">Route 1: Talaimari &bull; Kazla &bull; RU Main Gate &bull; VU Campus</div>
+                        <div class="text-[11px] text-slate-500">Morning Pickups: 7:45 AM, 8:45 AM, 10:00 AM &bull; Returns: 1:30 PM, 3:30 PM, 5:00 PM.</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div class="font-bold text-blue-700 mb-0.5">Route 2: Railway Station &bull; Vodra &bull; Shiroil &bull; VU Campus</div>
+                        <div class="text-[11px] text-slate-500">Morning Pickups: 8:00 AM, 9:00 AM &bull; Returns: 2:00 PM, 4:15 PM.</div>
+                    </div>
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                        <div class="font-bold text-blue-700 mb-0.5">Route 3: Court &bull; C&amp;B &bull; Bornali &bull; Railgate &bull; VU Campus</div>
+                        <div class="text-[11px] text-slate-500">Morning Pickups: 7:50 AM, 8:50 AM &bull; Returns: 3:30 PM, 5:00 PM.</div>
+                    </div>
+                </div>
+
+                <div class="p-2.5 rounded-lg bg-emerald-50 text-emerald-800 text-[11px] font-medium">
+                    Transportation is complimentary for all enrolled students displaying valid student ID cards.
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="closeBusModal()" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold">Close Guide</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Citation Inspector Modal -->
+    <div id="citationModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4" onclick="closeCitationModal()">
+        <div class="w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 space-y-4" onclick="event.stopPropagation()">
+            <div class="flex items-start justify-between pb-3 border-b border-slate-100">
+                <div>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Official Record Inspector</span>
+                    <h3 id="citationModalTitle" class="text-base font-bold text-slate-900 mt-0.5">-</h3>
+                </div>
+                <button onclick="closeCitationModal()" class="text-slate-400 hover:text-slate-700 text-xl font-bold">&times;</button>
+            </div>
+            <div>
+                <span class="text-xs font-semibold text-slate-500">Document Excerpt:</span>
+                <div id="citationModalText" class="mt-1 p-3.5 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-700 leading-relaxed max-h-60 overflow-y-auto whitespace-pre-wrap">
+                    -
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button onclick="closeCitationModal()" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 py-8 text-xs text-slate-500 mt-12">
+        <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+                <p>&copy; 2026 Varendra University Knowledge Engine &bull; Engineered by Mustarif Alom (33rd Batch CSE) &bull; ASTGD Industrial Attachment</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <a href="https://github.com/ASTGD/VUKnowledgebase" target="_blank" rel="noopener noreferrer" class="hover:underline font-semibold text-slate-700">
+                    ASTGD Repository
+                </a>
+                <a href="https://github.com/ezoxkr-dev/VUKnowledgebase" target="_blank" rel="noopener noreferrer" class="hover:underline">
+                    ezoxkr-dev/VUKnowledgebase
+                </a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- VARENDRA UNIVERSITY KNOWLEDGE DATA & QUERY SCRIPT -->
+    <script>
+        // Full Varendra University Program & Tuition Database
+        const PROGRAM_FEES = {
+            cse: { name: "B.Sc. in Computer Science & Engineering", credits: 144, fee: 514000, semesters: 8 },
+            eee: { name: "B.Sc. in Electrical & Electronic Engineering", credits: 143, fee: 468000, semesters: 8 },
+            pharmacy: { name: "Bachelor of Pharmacy (B.Pharm)", credits: 164, fee: 666000, semesters: 8 },
+            bba: { name: "Bachelor of Business Administration (BBA)", credits: 126, fee: 414000, semesters: 8 },
+            llb: { name: "LL.B. (Honours) - Department of Law", credits: 134, fee: 369000, semesters: 8 },
+            english: { name: "B.A. (Honours) in English", credits: 123, fee: 324000, semesters: 8 },
+            economics: { name: "BSS (Honours) in Economics", credits: 123, fee: 252000, semesters: 8 },
+            sociology: { name: "BSS (Honours) in Sociology", credits: 123, fee: 252000, semesters: 8 },
+            jcms: { name: "BSS in Journalism & Creative Media (JCMS)", credits: 123, fee: 288000, semesters: 8 },
+        };
+
+        // Official University Knowledge Passages
+        const VU_KNOWLEDGE_BASE = [
+            {
+                title: "Overview & Establishment Approval",
+                tags: ["overview", "established", "ugc", "rajshahi", "approval", "private", "certificate"],
+                content: "Varendra University (বরেন্দ্র বিশ্ববিদ্যালয়) is the first UGC and Government permitted private university in Rajshahi, established in 2012 (Ministry of Education approval: March 14, 2012; UGC approval: March 20, 2012). Permanent Certificate of Establishment was issued on September 4, 2025. It offers sessions in Spring (January-June) and Summer (July-December). Over 8,500 active students and 11,000+ graduates."
+            },
+            {
+                title: "B.Sc. in CSE (Computer Science & Engineering) Fees & Structure",
+                tags: ["cse", "computer", "fee", "tuition", "credits", "cost", "engineering", "সিএসই", "খরচ"],
+                content: "For B.Sc. in Computer Science and Engineering (CSE): Total credit requirement is 144 credits over 4 years (8 semesters). The standard total tuition fee is BDT 5,14,000. Semester tuition is paid in flexible installments. Eligibility: Combined GPA 6.00 with minimum GPA 2.50 in both SSC & HSC with Science background. Laboratories include High-Performance Computing, AI & Robotics, Networking, and Microprocessor labs. Progressing toward IEB accreditation."
+            },
+            {
+                title: "Bachelor of Pharmacy (B.Pharm) Accreditation & Fees",
+                tags: ["pharmacy", "b.pharm", "pharma", "fee", "tuition", "pcb", "accreditation", "ফার্মেসি"],
+                content: "Bachelor of Pharmacy (B.Pharm): 4-year undergraduate program requiring 164 credits across 8 semesters. Standard total tuition fee is BDT 6,66,000. Accredited by the Pharmacy Council of Bangladesh (PCB). Requires minimum GPA 3.00 in SSC & HSC with Chemistry and Biology."
+            },
+            {
+                title: "LL.B. (Honours) & Bar Council Accreditation",
+                tags: ["law", "llb", "ll.b", "fee", "bar council", "আইন"],
+                content: "LL.B. (Honours) under the Department of Law: Total 134 credits over 8 semesters. Standard total tuition fee is BDT 3,69,000. Formally accredited by the Bangladesh Bar Council for professional advocacy. Eligibility: Minimum GPA 2.50 in SSC and HSC."
+            },
+            {
+                title: "BBA (Bachelor of Business Administration) Fees",
+                tags: ["bba", "business", "mba", "fee", "cost", "বিবিএ"],
+                content: "Bachelor of Business Administration (BBA): 126 credits across 8 semesters. Standard total tuition fee is BDT 4,14,000. Major specializations offered in Accounting, Finance, Marketing, and HRM."
+            },
+            {
+                title: "B.Sc. in EEE (Electrical & Electronic Engineering) Fees",
+                tags: ["eee", "electrical", "fee", "cost", "credits", "ট্রিপল"],
+                content: "B.Sc. in Electrical and Electronic Engineering (EEE): Total 143 credits across 8 semesters. Standard total tuition fee is BDT 4,68,000. Complete laboratory facilities for Electronics, Power Systems, Telecommunications, and Control Systems."
+            },
+            {
+                title: "Merit Scholarships & Tuition Fee Waivers",
+                tags: ["waiver", "waivers", "scholarship", "merit", "gpa 5", "female", "sibling", "ওয়েভার", "বৃত্তি"],
+                content: "Varendra University provides extensive tuition fee waivers: Students with GPA 5.00 in both SSC and HSC receive 50% to 100% merit tuition fee waiver. Special 25% waiver is granted to all female students, siblings, and spouses. 100% full free scholarship for children of Freedom Fighters. To retain merit waiver in subsequent semesters, students must maintain a minimum SGPA of 3.50+."
+            },
+            {
+                title: "Permanent Campus Location & Infrastructure",
+                tags: ["campus", "permanent", "location", "address", "kharbona", "bypass", "ক্যাম্পাস", "ঠিকানা"],
+                content: "Varendra University Permanent Campus is located at Bypass Road, Kharbona, Rajshahi-6204. The campus features an expansive eco-friendly campus, 84 air-conditioned digital classrooms, 25 high-tech research and computer laboratories, automated central library, multi-cuisine cafeteria, sports grounds, and dedicated medical center."
+            },
+            {
+                title: "Student Transportation & Bus Route Schedule",
+                tags: ["bus", "transport", "transportation", "route", "shuttle", "schedule", "বাস", "যাতায়াত"],
+                content: "The university provides dedicated bus fleet service for students between Rajshahi city points and the Permanent Campus: Route 1 connects Talaimari, Kazla, and RU Main Gate to VU Campus. Route 2 connects Railway Station, Vodra, and Shiroil to VU Campus. Route 3 connects Court, C&B, Bornali, and Railgate to VU Campus. Pickups occur at 7:45 AM, 8:45 AM, and 10:00 AM; returns at 1:30 PM, 3:30 PM, and 5:00 PM. Free for registered students with university ID."
+            },
+            {
+                title: "Admission Procedure & Online Portal",
+                tags: ["admission", "apply", "portal", "documents", "process", "eligibility", "ভর্তি"],
+                content: "Undergraduate Admission Procedure: 1. Visit the official online admission portal at https://admission.vu.edu.bd/ 2. Register with SSC & HSC board, roll, registration and year. 3. Fill profile and upload recent photo & signature. 4. Choose your intended subject. 5. Pay application fee through bKash, Nagad, or Rocket. Admissions Office Helpline: 01730-406501, 01730-406502. Email: admission@vu.edu.bd."
+            },
+            {
+                title: "UGC Uniform Grading System",
+                tags: ["grading", "cgpa", "gpa", "scale", "marks", "result", "গ্রেডিং"],
+                content: "Varendra University strictly follows the uniform grading system approved by UGC: 80% and above = A+ (4.00); 75% to <80% = A (3.75); 70% to <75% = A- (3.50); 65% to <70% = B+ (3.25); 60% to <65% = B (3.00); 55% to <60% = B- (2.75); 50% to <55% = C+ (2.50); 45% to <50% = C (2.25); 40% to <45% = D (2.00); Less than 40% = F (0.00)."
+            },
+            {
+                title: "Leadership & Administration",
+                tags: ["leadership", "vc", "founder", "trust", "administration", "vice chancellor"],
+                content: "Honorable Chairman of Varendra University Trust (VUT): Mr. Hafizur Rahaman Khan. The university is governed by a distinguished Board of Trustees, Vice Chancellor, Pro-Vice Chancellor, Treasurer, Registrar, and Deans across 3 faculties (Faculty of Science & Engineering, Faculty of Business Administration, Faculty of Arts & Social Sciences)."
+            }
+        ];
+
+        const PROMPTS_DATA = {
+            all: [
+                "What are the admission requirements for undergraduate programs?",
+                "What is the total tuition fee and waiver for B.Sc. in CSE?",
+                "Where is the Varendra University permanent campus located?",
+                "সিএসই বিভাগে ভর্তির যোগ্যতা ও মোট টিউশন ফি কত?",
+            ],
+            fees: [
+                "What is the total tuition fee for B.Sc. in CSE?",
+                "What is the cost for Bachelor of Pharmacy (B.Pharm)?",
+                "What are the tuition fees for BBA and LL.B?",
+            ],
+            admission: [
+                "What are the minimum GPA requirements for SSC and HSC?",
+                "What documents must be submitted during admission?",
+                "How to apply online via admission.vu.edu.bd?",
+            ],
+            cse: [
+                "How many credits are required to graduate in B.Sc. in CSE?",
+                "What lab and research facilities exist in the CSE department?",
+                "Does VU CSE have IEB accreditation progress?",
+            ],
+            campus: [
+                "Where is the permanent campus located and how to reach there?",
+                "What are the university student bus routes and pickup times?",
+                "What facilities exist on the permanent campus?",
+            ],
+            waiver: [
+                "What GPA is required for 100% and 50% tuition fee waiver?",
+                "Is there a 25% waiver for female students or siblings?",
+                "What are the conditions for retaining merit waiver across semesters?",
+            ]
+        };
+
+        // DOMAIN GUARD VALIDATION
+        const VU_KEYWORDS = [
+            "varendra", "vu", "university", "admission", "admissions", "apply", "tuition", "fee", "fees",
+            "cost", "waiver", "waivers", "scholarship", "cse", "eee", "pharmacy", "bba", "law", "llb",
+            "english", "economics", "sociology", "jcms", "campus", "kharbona", "bypass", "bus", "transport",
+            "route", "grading", "cgpa", "gpa", "semester", "credit", "faculty", "vc", "rajshahi", "library",
+            "বরেন্দ্র", "বিশ্ববিদ্যালয়", "ভর্তি", "ফি", "খরচ", "সিএসই", "ট্রিপল", "ফার্মেসি", "আইন", "ক্যাম্পাস", "ওয়েভার"
+        ];
+
+        function isVuPertinent(query) {
+            const q = query.toLowerCase().trim();
+            if (q.includes("varendra") || q.includes("বরেন্দ্র") || /\bvu\b/i.test(q)) return true;
+
+            const otherUnivs = ["dhaka university", "du", "buet", "ruet", "nsu", "brac", "harvard", "oxford"];
+            if (otherUnivs.some(u => q.includes(u))) return false;
+
+            const words = q.replace(/[?.,!;:()"]/g, " ").split(/\s+/).filter(Boolean);
+            const matches = words.filter(w => VU_KEYWORDS.some(k => w === k || (k.length > 3 && w.includes(k))));
+            return matches.length >= 1;
+        }
+
+        // Search Passages
+        function searchKnowledge(query) {
+            const rawTokens = query.toLowerCase().replace(/[?.,!;:()"]/g, " ").split(/\s+/).filter(Boolean);
+            const scored = [];
+
+            VU_KNOWLEDGE_BASE.forEach(passage => {
+                let score = 0;
+                rawTokens.forEach(t => {
+                    if (passage.tags.some(tag => tag.includes(t) || t.includes(tag))) score += 4;
+                    if (passage.title.toLowerCase().includes(t)) score += 3;
+                    if (passage.content.toLowerCase().includes(t)) score += 1;
+                });
+                if (score > 0) {
+                    const matchPercent = Math.min(97.5, 60 + (score * 4.5));
+                    scored.push({ passage, score: matchPercent });
+                }
+            });
+
+            scored.sort((a, b) => b.score - a.score);
+            return scored.slice(0, 3);
+        }
+
+        // Render Prompts
+        function renderPrompts(category) {
+            const container = document.getElementById('promptsContainer');
+            container.innerHTML = '';
+            const items = PROMPTS_DATA[category] || PROMPTS_DATA.all;
+            items.forEach(p => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'px-3 py-1 rounded-full border border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-emerald-400 text-slate-700 transition text-left';
+                btn.innerText = p;
+                btn.onclick = () => {
+                    document.getElementById('queryInput').value = p;
+                    executeSearch(p);
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function filterCategory(cat) {
+            document.querySelectorAll('.cat-btn').forEach(b => {
+                b.className = 'cat-btn px-3 py-1 rounded-full bg-slate-100 text-slate-600 hover:bg-slate-200 font-medium transition';
+            });
+            const active = document.getElementById('btn-' + cat);
+            if (active) active.className = 'cat-btn px-3 py-1 rounded-full bg-emerald-600 text-white font-semibold transition';
+            renderPrompts(cat);
+        }
+
+        let currentAnswerText = "";
+        let currentSources = [];
+        let isSpeaking = false;
+
+        function executeSearch(query) {
+            const q = query.trim();
+            if (!q) return;
+
+            // Stop speech
+            if (window.speechSynthesis) window.speechSynthesis.cancel();
+            isSpeaking = false;
+            updateAudioBtnState();
+
+            const isBangla = /[\u0980-\u09FF]/.test(q);
+
+            // 1. Strict Domain Guardrail Check
+            if (!isVuPertinent(q)) {
+                document.getElementById('outOfDomainBox').classList.remove('hidden');
+                document.getElementById('answerContainer').classList.add('hidden');
+                document.getElementById('outOfDomainText').innerText = isBangla
+                    ? "আমি বরেন্দ্র বিশ্ববিদ্যালয়ের অফিসিয়াল এআই সহকারী। আমি শুধুমাত্র বরেন্দ্র বিশ্ববিদ্যালয় সম্পর্কিত তথ্য (যেমনঃ বিভিন্ন বিভাগের ভর্তি যোগ্যতা, মোট টিউশন ফি, ওয়েভার ও স্কলারশিপ নীতিমালা, স্থায়ী ক্যাম্পাস, যাতায়াত ব্যবস্থা ও সুযোগ-সুবিধা) প্রদানের জন্য তৈরি। আপনার প্রশ্নটি বরেন্দ্র বিশ্ববিদ্যালয় সম্পর্কিত না হওয়ায় উত্তর প্রদান করা সম্ভব নয়। অনুগ্রহ করে বরেন্দ্র বিশ্ববিদ্যালয় সম্পর্কিত প্রশ্ন জিজ্ঞাসা করুন।"
+                    : "I am the official Varendra University Knowledge AI. I can strictly assist with information regarding Varendra University (including admissions, tuition fees, merit waivers, academic departments, permanent campus location, and bus transit). Your inquiry does not appear to be related to Varendra University. Please ask a Varendra University inquiry.";
+                return;
+            }
+
+            document.getElementById('outOfDomainBox').classList.add('hidden');
+
+            // 2. Search Grounded Passages
+            const hits = searchKnowledge(q);
+            if (hits.length === 0) {
+                document.getElementById('answerContainer').classList.remove('hidden');
+                document.getElementById('citationsCard').classList.add('hidden');
+                currentAnswerText = isBangla
+                    ? "বরেন্দ্র বিশ্ববিদ্যালয়ের অফিশিয়াল নলেজবেসে এই প্রশ্নের সরাসরি কোনো রেকর্ড পাওয়া যায়নি। অনুগ্রহ করে ভর্তি হেল্পলাইনে (01730-406501, 01730-406502) যোগাযোগ করুন অথবা admission.vu.edu.bd ভিজিট করুন।"
+                    : "No direct official record found in Varendra University documentation for this inquiry. Please contact the admission helpline at 01730-406501 or visit admission.vu.edu.bd.";
+                document.getElementById('answerContent').innerText = currentAnswerText;
+                return;
+            }
+
+            // Synthesize grounded answer
+            currentSources = hits.map(h => ({
+                title: h.passage.title,
+                snippet: h.passage.content,
+                match: h.score.toFixed(1)
+            }));
+
+            let formatted = `Based on the official Varendra University documentation [1]:\n\n`;
+            hits.forEach((h, i) => {
+                formatted += `[${i + 1}] ${h.passage.content}\n\n`;
+            });
+            formatted += `📌 Verified from official Varendra University prospectus (Rajshahi Campus).`;
+
+            currentAnswerText = formatted;
+            document.getElementById('answerContent').innerText = currentAnswerText;
+
+            // Render Sources
+            const list = document.getElementById('sourcesList');
+            list.innerHTML = '';
+            currentSources.forEach((s, i) => {
+                const li = document.createElement('li');
+                li.className = 'p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-emerald-400 cursor-pointer transition';
+                li.onclick = () => openCitationModal(s);
+                li.innerHTML = `
+                    <div class="flex items-center justify-between font-semibold text-slate-800 mb-1">
+                        <span>[${i + 1}] ${s.title}</span>
+                        <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-mono text-[10px] font-bold">${s.match}% match</span>
+                    </div>
+                    <p class="text-slate-600 text-[11px] leading-relaxed line-clamp-2">${s.snippet}</p>
+                `;
+                list.appendChild(li);
+            });
+
+            document.getElementById('sourceCount').innerText = currentSources.length;
+            document.getElementById('citationsCard').classList.remove('hidden');
+            document.getElementById('answerContainer').classList.remove('hidden');
+
+            document.getElementById('answerContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function handleQuerySubmit(e) {
+            e.preventDefault();
+            const val = document.getElementById('queryInput').value;
+            executeSearch(val);
+        }
+
+        function setAndQuery(txt) {
+            document.getElementById('queryInput').value = txt;
+            executeSearch(txt);
+        }
+
+        // Voice Input (Web Speech API)
+        let recognition = null;
+        let isRecording = false;
+
+        function toggleVoiceInput() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("Speech recognition is not supported in this browser. Please type your query.");
+                return;
+            }
+
+            if (isRecording) {
+                if (recognition) recognition.stop();
+                isRecording = false;
+                document.getElementById('voiceStatus').classList.add('hidden');
+                document.getElementById('micIcon').className = 'fas fa-microphone text-slate-700';
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-US';
+
+            recognition.onstart = () => {
+                isRecording = true;
+                document.getElementById('voiceStatus').classList.remove('hidden');
+                document.getElementById('micIcon').className = 'fas fa-stop text-red-600';
+            };
+
+            recognition.onresult = (e) => {
+                const text = e.results[0][0].transcript;
+                document.getElementById('queryInput').value = text;
+                executeSearch(text);
+            };
+
+            recognition.onerror = () => {
+                isRecording = false;
+                document.getElementById('voiceStatus').classList.add('hidden');
+                document.getElementById('micIcon').className = 'fas fa-microphone text-slate-700';
+            };
+
+            recognition.onend = () => {
+                isRecording = false;
+                document.getElementById('voiceStatus').classList.add('hidden');
+                document.getElementById('micIcon').className = 'fas fa-microphone text-slate-700';
+            };
+
+            recognition.start();
+        }
+
+        // Text-To-Speech (TTS)
+        function toggleAudioSpeech() {
+            if (!window.speechSynthesis) {
+                alert("Audio readout is not supported in this browser.");
+                return;
+            }
+
+            if (isSpeaking) {
+                window.speechSynthesis.cancel();
+                isSpeaking = false;
+                updateAudioBtnState();
+                return;
+            }
+
+            if (!currentAnswerText) return;
+
+            window.speechSynthesis.cancel();
+            const clean = currentAnswerText.replace(/\[\d+\]/g, '').replace(/[#*`_📌]/g, '').trim();
+            const utterance = new SpeechSynthesisUtterance(clean);
+            utterance.rate = 1.0;
+            const isBangla = /[\u0980-\u09FF]/.test(clean);
+            utterance.lang = isBangla ? 'bn-BD' : 'en-US';
+
+            utterance.onend = () => { isSpeaking = false; updateAudioBtnState(); };
+            utterance.onerror = () => { isSpeaking = false; updateAudioBtnState(); };
+
+            window.speechSynthesis.speak(utterance);
+            isSpeaking = true;
+            updateAudioBtnState();
+        }
+
+        function updateAudioBtnState() {
+            const btn = document.getElementById('audioBtn');
+            const icon = document.getElementById('audioIcon');
+            const txt = document.getElementById('audioText');
+            if (isSpeaking) {
+                btn.className = 'px-3 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-semibold flex items-center gap-1.5 animate-pulse';
+                icon.className = 'fas fa-stop';
+                txt.innerText = 'Stop Audio';
+            } else {
+                btn.className = 'px-3 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold flex items-center gap-1.5 transition';
+                icon.className = 'fas fa-volume-up';
+                txt.innerText = 'Listen Audio';
+            }
+        }
+
+        function copyAnswerText() {
+            if (!currentAnswerText) return;
+            navigator.clipboard.writeText(currentAnswerText).then(() => {
+                document.getElementById('copyText').innerText = '✓ Copied!';
+                setTimeout(() => { document.getElementById('copyText').innerText = 'Copy'; }, 2000);
+            });
+        }
+
+        // Calculator Logic
+        function updateCalculation() {
+            const progKey = document.getElementById('calcProgramSelect').value;
+            const prog = PROGRAM_FEES[progKey] || PROGRAM_FEES.cse;
+            const ssc = parseFloat(document.getElementById('calcSsc').value) || 0;
+            const hsc = parseFloat(document.getElementById('calcHsc').value) || 0;
+            const quota = document.getElementById('calcQuotaSelect').value;
+
+            let waiver = 0;
+            if (quota === 'ff') {
+                waiver = 100;
+            } else if (ssc >= 5.0 && hsc >= 5.0) {
+                waiver = 50;
+            } else if (quota === 'female' || quota === 'sibling') {
+                waiver = 25;
+            }
+
+            const discount = (prog.fee * waiver) / 100;
+            const net = prog.fee - discount;
+            const perSem = Math.round(net / prog.semesters);
+
+            document.getElementById('calcStandardFee').innerText = `৳${prog.fee.toLocaleString()} BDT`;
+            document.getElementById('calcWaiverPercent').innerText = `${waiver}% (৳${discount.toLocaleString()} Saved)`;
+            document.getElementById('calcNetFee').innerText = `৳${net.toLocaleString()} BDT`;
+            document.getElementById('calcPerSemester').innerText = `৳${perSem.toLocaleString()} / semester`;
+        }
+
+        function askAiCalcDetails() {
+            const progKey = document.getElementById('calcProgramSelect').value;
+            const prog = PROGRAM_FEES[progKey] || PROGRAM_FEES.cse;
+            closeCalcModal();
+            const q = `What is the total tuition fee and waiver policy for ${prog.name}?`;
+            document.getElementById('queryInput').value = q;
+            executeSearch(q);
+        }
+
+        function openCalcModal() {
+            updateCalculation();
+            document.getElementById('calcModal').classList.remove('hidden');
+            document.body.classList.add('modal-active');
+        }
+        function closeCalcModal() {
+            document.getElementById('calcModal').classList.add('hidden');
+            document.body.classList.remove('modal-active');
+        }
+
+        function openBusModal() {
+            document.getElementById('busModal').classList.remove('hidden');
+            document.body.classList.add('modal-active');
+        }
+        function closeBusModal() {
+            document.getElementById('busModal').classList.add('hidden');
+            document.body.classList.remove('modal-active');
+        }
+
+        function openCitationModal(s) {
+            document.getElementById('citationModalTitle').innerText = s.title + ` (${s.match}% Match)`;
+            document.getElementById('citationModalText').innerText = s.snippet;
+            document.getElementById('citationModal').classList.remove('hidden');
+            document.body.classList.add('modal-active');
+        }
+        function closeCitationModal() {
+            document.getElementById('citationModal').classList.add('hidden');
+            document.body.classList.remove('modal-active');
+        }
+
+        // Initialize on Load
+        renderPrompts('all');
+    </script>
+</body>
+</html>
